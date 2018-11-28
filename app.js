@@ -60,6 +60,21 @@ let budgetController = (function() { //IFFE begins here
 			return newItem;
 		},
 
+		deleteItem: function(type, id) {
+			//find index of id that we want to remove (may not always be same as id)
+			let ids, index;
+
+			ids = data.allItems[type].map(function(current) {
+				return current.id;
+			});
+
+			index = ids.indexOf(id);
+
+			if (index !== -1) { //-1 means does not exist
+				data.allItems[type].splice(index, 1);
+			}
+		},
+
 		calculateBudget: function() {
 
 			//calculate total income and expenses
@@ -141,6 +156,12 @@ let UIController = (function() { //begin IFFE
 
 			//3. Insert HTML into DOM
 			document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
+		},
+
+		deleteListItem: function(selectorID) {
+
+			let el = document.getElementById(selectorID);
+			el.parentNode.removeChild(el);
 		},
 
 		clearFields: function() {
@@ -243,16 +264,18 @@ let controller = (function(budgetCtrl, UICtrl) { //pass the other two modules as
 		if(itemID) {//info is coded into html element as class, use this function to create an array from which we get the type and id of target
 
 			//inc-1
-			splitID = itemID.spit('-');
-			type = splitID[0];
-			ID = splitID[1];
+			splitID = itemID.split('-');
+            type = splitID[0];
+			ID = parseInt(splitID[1]);
 
 			//1. delete item from data structure
+			budgetCtrl.deleteItem(type, ID);
 
 			//2. delete item from user interface
+			UICtrl.deleteListItem(itemID);
 
 			//3. update and show new budget
-
+			updateBudget();
 		}
 	};
 
