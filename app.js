@@ -152,8 +152,38 @@ let UIController = (function() { //begin IFFE
 		expensesLabel: '.budget__expenses--value',
 		percentageLabel: '.budget__expenses--percentage',
 		container: '.container',
-		expensesPercLabel: '.item__percentage'
+		expensesPercLabel: '.item__percentage',
+		dateLabel: '.budget__title--month'
 	}
+
+	 var formatNumber = function(num, type) {
+	 	//+ or - before number; 2 decimal points; comma separating thousands
+        var numSplit, int, dec, type;
+        
+        num = Math.abs(num); //abs removes sign of number - method of Math Object
+        num = num.toFixed(2); //set 2 places after decimal. method of Number Prototype, JS converts primitive num to Number Object. Will add decimals and round up - returns a string
+
+        numSplit = num.split('.'); //split num into two parts: integer & decimal. Returns an array
+
+        int = numSplit[0];
+        if (int.length > 3) {
+            int = int.substr(0, int.length - 3) + ',' + int.substr(int.length - 3, 3); //input 23510, output 23,510
+        }
+
+        dec = numSplit[1];
+
+        //type === 'exp' ? sign = '-' : sign = '+';
+		//return type + ' ' + int + dec;
+        return (type === 'exp' ? '-' : '+') + ' ' + int + '.' + dec;
+
+    };
+
+	let nodeListForEach = function(list, callback) {
+			for (var i=0; i<list.length; i++) {
+				callback(list[i], i); //(current, index) from below
+			}
+		};
+
 
 	return {
 		getinput: function() {
@@ -178,8 +208,8 @@ let UIController = (function() { //begin IFFE
 			
 			//2. replace placehoder text with actual data received from object, can use all methods available to string objects
 			newHtml = html.replace('%id%', obj.id);
-			newHtml = newHtml.replace('%description%', obj.description);
-			newHtml = newHtml.replace('%value%', obj.value);
+            newHtml = newHtml.replace('%description%', obj.description);
+            newHtml = newHtml.replace('%value%', formatNumber(obj.value, type));
 
 			//3. Insert HTML into DOM
 			document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
@@ -208,9 +238,12 @@ let UIController = (function() { //begin IFFE
 		},
 								//obj generated in getBudget Method
 		displayBudget: function(obj) {
-			document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
-			document.querySelector(DOMstrings.incomeLabel).textContent = obj.totalInc;
-			document.querySelector(DOMstrings.expensesLabel).textContent = obj.totalExp;
+			let type;
+			obj.budget > 0 ? type = 'inc' : type = 'exp'; 
+
+			document.querySelector(DOMstrings.budgetLabel).textContent = formatNumber(obj.budget, type);
+			document.querySelector(DOMstrings.incomeLabel).textContent = formatNumber(obj.totalInc, 'inc');
+			document.querySelector(DOMstrings.expensesLabel).textContent = formatNumber(obj.totalExp, 'exp');
 			
 
 			if (obj.percentage > 0 ) {
@@ -222,13 +255,7 @@ let UIController = (function() { //begin IFFE
 
 		displayPercentages: function(percentages) {
 
-			let fields = document.querySelectorAll(DOMstrings.expensesPercLabel);
-
-			let nodeListForEach = function(list, callback) {
-				for (var i=0; i<list.length; i++) {
-					callback(list[i], i); //(current, index) from below
-				}
-			};
+			let fields = document.querySelectorAll(DOMstrings.expensesPercLabel);		
 
 			nodeListForEach(fields, function(current, index) {
 				if(percentages[index] > 0) {
@@ -238,6 +265,32 @@ let UIController = (function() { //begin IFFE
 				}				
 			});
 		},
+
+		displayMonth: function() {
+			let now, year, months, month;
+
+			now = new Date(); //Date is an Object Constructor of JS
+			//var christmas - new Date(2018, 11, 25) 0-based
+			months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+			month = now.getMonth();
+
+			year = now.getFullYear();
+			document.querySelector(DOMstrings.dateLabel).textContent = months[month] + ' ' + year;
+		},
+
+		changedType: function() {
+            
+            var fields = document.querySelectorAll(
+                DOMstrings.inputType + ',' +
+                DOMstrings.inputDescription + ',' +
+                DOMstrings.inputValue);
+            
+            nodeListForEach(fields, function(cur) {
+               cur.classList.toggle('red-focus'); 
+         	});
+
+         	document.querySelector(DOMstrings.inputBtn).classList.toggle('red');
+        },
 
 		getDOMstrings: function() {
 			return DOMstrings;
@@ -264,6 +317,8 @@ let controller = (function(budgetCtrl, UICtrl) { //pass the other two modules as
 		});
 
 		document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
+
+		document.querySelector(DOM.inputType).addEventListener('change', UICtrl.changedType);
 	};
 
 	let updateBudget = function() {
@@ -345,6 +400,7 @@ let controller = (function(budgetCtrl, UICtrl) { //pass the other two modules as
 	return {
 		init: function() {
 			console.log('App has started.');
+			UICtrl.displayMonth();
 			UICtrl.displayBudget({ //set everything to 0 on start
 				budget: 0,
 				totalInc: 0,
